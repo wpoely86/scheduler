@@ -234,6 +234,29 @@ function scheduler_form_node_type_form_alter(&$form, $form_state) {
     '#title' => t('Create a new revision on publishing'),
     '#default_value' => variable_get('scheduler_publish_revision_' . $form['#node_type']->type, 0),
   );
+
+  $date_format = variable_get('scheduler_date_format', SCHEDULER_DATE_FORMAT);
+  $use_date_popup = _scheduler_use_date_popup();
+  $internal_date_format = $use_date_popup ? SCHEDULER_DATE_FORMAT : $date_format;
+  $description_format = t('Format: %time.', array('%time' => format_date(time(), 'custom', $date_format)));
+
+  $form['scheduler']['publish']['schedular_publish_default_date'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Default Publishing date'),
+      '#maxlength' => 25,
+      '#default_value' => variable_get('schedular_publish_default_date_' . $form['#node_type']->type,''),
+      '#description' => $description_format . ' ' . t('Leave blank to have no default date'),
+      '#states' => array('visible' => array(':input[name="scheduler_publish_required"]' => array('checked' => TRUE) )),
+  );
+
+  if ($use_date_popup) {
+      $form['scheduler']['publish']['schedular_publish_default_date']['#type'] = 'date_popup';
+      $form['scheduler']['publish']['schedular_publish_default_date']['#date_format'] = $date_format;
+      $form['scheduler']['publish']['schedular_publish_default_date']['#date_year_range'] = '0:+10';
+      $form['scheduler']['publish']['schedular_publish_default_date']['#description'] = t('Leave blank to have no default date');
+      unset($form['scheduler_settings']['publish']['schedular_publish_default_date']['#maxlength']);
+  }
+
   $form['scheduler']['unpublish'] = array(
     '#type' => 'fieldset',
     '#title' => t('Unpublishing'),
@@ -256,6 +279,22 @@ function scheduler_form_node_type_form_alter(&$form, $form_state) {
     '#title' => t('Create a new revision on unpublishing'),
     '#default_value' => variable_get('scheduler_unpublish_revision_' . $form['#node_type']->type, 0),
   );
+  $form['scheduler']['unpublish']['schedular_unpublish_default_date'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Default unpublishing date'),
+      '#maxlength' => 25,
+      '#default_value' => variable_get('schedular_unpublish_default_date_' . $form['#node_type']->type,''),
+      '#description' => $description_format . ' ' . t('Leave blank to have no default date'),
+      '#states' => array('visible' => array(':input[name="scheduler_unpublish_required"]' => array('checked' => TRUE) )),
+  );
+
+  if ($use_date_popup) {
+      $form['scheduler']['unpublish']['schedular_unpublish_default_date']['#type'] = 'date_popup';
+      $form['scheduler']['unpublish']['schedular_unpublish_default_date']['#date_format'] = $date_format;
+      $form['scheduler']['unpublish']['schedular_unpublish_default_date']['#date_year_range'] = '0:+10';
+      $form['scheduler']['unpublish']['schedular_unpublish_default_date']['#description'] = t('Leave blank to have no default date');
+      unset($form['scheduler_settings']['unpublish']['schedular_unpublish_default_date']['#maxlength']);
+  }
 }
 
 /**
@@ -293,7 +332,8 @@ function scheduler_form_alter(&$form, $form_state) {
       else {
         // init standard values
         $defaults = new StdClass;
-        $defaults->publish_on = $defaults->unpublish_on = NULL;
+        $defaults->publish_on = variable_get('schedular_publish_default_date_'. $form['type']['#value'],NULL);
+        $defaults->unpublish_on = variable_get('schedular_unpublish_default_date_'. $form['type']['#value'],NULL);
       }
 
       // if there is a text value then convert it to a unix timestamp
